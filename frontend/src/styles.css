@@ -1917,3 +1917,6 @@ button.ai2-row:hover { background: rgba(95,179,157,.05); }
 .ask-card.is-disabled textarea { opacity: .55; cursor: not-allowed; }
 .ask-card .ask-go:disabled { opacity: .45; cursor: not-allowed; }
 .ask-disabled-note { margin: 4px 0 12px; padding-left: 10px; border-left: 2px solid #4a4c52; color: #b9babf; font-size: 13px; line-height: 1.5; }
+
+/* AI 분석 — small explanatory line under a section title */
+.panel-subnote { margin: -8px 0 14px; color: #8f9196; font-size: 12.5px; line-height: 1.6; }

@@ -2878,6 +2878,10 @@ function AiAnalysis({
                 <span>시설분석 49개 지역 · 개선 검토 후보 TOP 5 표시</span>
                 <ScopeTag scope="49" />
               </div>
+              <p className="panel-subnote">
+                AI 상대적 고위험 점수와 시설 부족도를 결합한 분석용 지표입니다.
+                공식 정책 우선순위가 아닙니다.
+              </p>
               <div className="ai2-quad-body">
                 <div className="ai2-scatter">
                   <svg viewBox="0 0 600 340" aria-label="AI 위험과 인프라 공급수준 분포">
