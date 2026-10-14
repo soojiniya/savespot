@@ -113,6 +113,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[
+        "https://savespot-amber.vercel.app",
+    ],
     allow_origin_regex=r"^http://(127\.0\.0\.1|localhost):\d+$",
     allow_credentials=False,
     allow_methods=["GET", "POST"],
