@@ -1,0 +1,11 @@
+﻿feature,importance_mean,importance_std
+prev_child_population,0.371025,0.019933
+prev_accident_per_10k_child,0.271218,0.041166
+accident_count_mean_2y,0.113238,0.032107
+prev_accident_count,0.110626,0.031864
+prev_injury_count,0.107411,0.031902
+accident_rate_change_1y,0.012136,0.023292
+accident_count_change_1y,0.003096,0.00568
+prev_death_count,0.00094,0.001414
+prev_vehicle_count,0.000152,0.001054
+prev_vehicles_per_100_child,-0.000813,0.002985

@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-10-06",
+  "master_regions": 229,
+  "panel_rows": 1374,
+  "model_rows": 916,
+  "best_model": "Logistic Regression",
+  "population_rows": 1374,
+  "vehicle_rows": 1374,
+  "blind_spot_regions": 49,
+  "missing_panel_values": 0
+}

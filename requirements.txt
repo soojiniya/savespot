@@ -1,0 +1,13 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+geopandas
+openpyxl
+joblib
+requests
+pymongo
+dnspython
+fastapi
+uvicorn
+python-dotenv

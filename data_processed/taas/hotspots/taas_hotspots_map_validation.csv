@@ -1,0 +1,11 @@
+﻿check_name,issue_count,status
+combined_hotspot_id_duplicate_rows,0,PASS
+source_type_hotspot_id_duplicate_rows,0,PASS
+coordinate_null_rows,0,PASS
+coordinate_zero_rows,0,PASS
+coordinate_outside_korea_rows,0,PASS
+geometry_parse_error_rows,0,PASS
+negative_accident_count_rows,0,PASS
+missing_source_type_rows,0,PASS
+missing_year_verification_status_rows,0,PASS
+child_pedestrian_missing_accident_year_rows,0,PASS

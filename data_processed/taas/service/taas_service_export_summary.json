@@ -1,0 +1,16 @@
+{
+  "font": "Malgun Gothic",
+  "charts": {
+    "yearly_totals": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\results\\taas\\taas_yearly_totals_2020_2025.png",
+    "weekday_ratio": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\results\\taas\\taas_weekday_ratio_2020_2025.png",
+    "time_ratio": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\results\\taas\\taas_time_ratio_2020_2025.png",
+    "weekday_time_heatmap_2025": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\results\\taas\\taas_weekday_time_heatmap_2025.png",
+    "accident_type_major_ratio": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\results\\taas\\taas_accident_type_major_ratio_2020_2025.png",
+    "car_person_middle_ratio": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\results\\taas\\taas_car_person_middle_ratio_2020_2025.png"
+  },
+  "service_json": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\data_processed\\taas\\service\\taas_national_statistics_service.json",
+  "validation_csv": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\data_processed\\taas\\service\\taas_service_json_validation.csv",
+  "validation_status": {
+    "통과": 72
+  }
+}

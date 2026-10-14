@@ -1,0 +1,163 @@
+{
+  "db_name": "child_traffic_safety",
+  "results": [
+    {
+      "collection": "final_main_49",
+      "csv_path": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\data_processed\\final_main_49.csv",
+      "csv_exists": true,
+      "csv_rows": 49,
+      "csv_columns": [
+        "SIDO_NM",
+        "SIGUNGU_NM",
+        "crosswalk_count",
+        "traffic_light_count",
+        "sido_sgg_nm",
+        "child_accident_count",
+        "child_death_count",
+        "child_injury_count",
+        "child_population_0_12",
+        "schoolzone_count",
+        "cctv_installed_zone_count",
+        "schoolzone_data_available",
+        "cctv_install_rate"
+      ],
+      "pre_existing_document_count": 0,
+      "inserted_count": 49,
+      "post_insert_document_count": 49,
+      "success": true,
+      "skipped": false,
+      "error_type": null,
+      "duplicates": {
+        "full_duplicate_rows": 0,
+        "sido_sgg_nm_duplicate_rows": 0
+      }
+    },
+    {
+      "collection": "final_speed_bump_35",
+      "csv_path": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\data_processed\\final_speed_bump_35.csv",
+      "csv_exists": true,
+      "csv_rows": 35,
+      "csv_columns": [
+        "SIDO_NM",
+        "SIGUNGU_NM",
+        "crosswalk_count",
+        "traffic_light_count",
+        "sido_sgg_nm",
+        "child_accident_count",
+        "child_death_count",
+        "child_injury_count",
+        "child_population_0_12",
+        "schoolzone_count",
+        "cctv_installed_zone_count",
+        "schoolzone_data_available",
+        "cctv_install_rate",
+        "speed_bump_count"
+      ],
+      "pre_existing_document_count": 0,
+      "inserted_count": 35,
+      "post_insert_document_count": 35,
+      "success": true,
+      "skipped": false,
+      "error_type": null,
+      "duplicates": {
+        "full_duplicate_rows": 0,
+        "sido_sgg_nm_duplicate_rows": 0
+      }
+    },
+    {
+      "collection": "eda_main_49",
+      "csv_path": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\data_processed\\eda_main_49.csv",
+      "csv_exists": true,
+      "csv_rows": 49,
+      "csv_columns": [
+        "SIDO_NM",
+        "SIGUNGU_NM",
+        "crosswalk_count",
+        "traffic_light_count",
+        "sido_sgg_nm",
+        "child_accident_count",
+        "child_death_count",
+        "child_injury_count",
+        "child_population_0_12",
+        "schoolzone_count",
+        "cctv_installed_zone_count",
+        "schoolzone_data_available",
+        "cctv_install_rate",
+        "accident_per_10k_child",
+        "crosswalk_per_1000_child",
+        "traffic_light_per_1000_child",
+        "schoolzone_per_1000_child",
+        "region_name",
+        "crosswalk_score",
+        "traffic_light_score",
+        "schoolzone_score",
+        "cctv_score",
+        "infrastructure_score",
+        "risk_score",
+        "priority_score"
+      ],
+      "pre_existing_document_count": 0,
+      "inserted_count": 49,
+      "post_insert_document_count": 49,
+      "success": true,
+      "skipped": false,
+      "error_type": null,
+      "duplicates": {
+        "full_duplicate_rows": 0,
+        "sido_sgg_nm_duplicate_rows": 0
+      }
+    },
+    {
+      "collection": "hotspots_map",
+      "csv_path": "C:\\Users\\User\\Documents\\Codex\\어린이교통안전\\data_processed\\taas\\hotspots\\taas_hotspots_map.csv",
+      "csv_exists": true,
+      "csv_rows": 1803,
+      "csv_columns": [
+        "hotspot_id",
+        "source_type",
+        "accident_year",
+        "year_verification_status",
+        "sido",
+        "sigungu",
+        "location_name",
+        "latitude",
+        "longitude",
+        "geometry",
+        "accident_count",
+        "casualty_count",
+        "death_count",
+        "serious_injury_count",
+        "minor_injury_count",
+        "injury_report_count",
+        "source_file",
+        "source_record_id",
+        "source_spot_code",
+        "source_region_name",
+        "map_feature_id"
+      ],
+      "pre_existing_document_count": 0,
+      "inserted_count": 1803,
+      "post_insert_document_count": 1803,
+      "success": true,
+      "skipped": false,
+      "error_type": null,
+      "duplicates": {
+        "full_duplicate_rows": 0,
+        "map_feature_id_duplicate_rows": 0
+      }
+    }
+  ],
+  "hotspots_map_source_type_counts": {
+    "schoolzone_hotspot": 646,
+    "child_pedestrian_hotspot": 1157
+  },
+  "hotspots_map_location_point_created": true,
+  "hotspots_map_2dsphere_index_created": true,
+  "hotspots_map_2dsphere_index_error_type": null,
+  "final_collections": [
+    "eda_main_49",
+    "final_main_49",
+    "final_speed_bump_35",
+    "hotspots_map"
+  ]
+}

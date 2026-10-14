@@ -1,0 +1,26 @@
+# Python / Jupyter
+__pycache__/
+*.pyc
+notebook/.ipynb_checkpoints/
+
+# Logs / temporary work
+*.log
+work/
+
+# API cache
+data_raw/api_cache/
+
+# UI verification screenshots
+frontend/verification-screenshots/
+
+# Existing ignores
+.env
+.venv/
+.claude/
+.codex/
+.impeccable/
+frontend/node_modules/
+frontend/dist/
+frontend/.npm-cache/
+frontend/.playwright-browsers/
+**/.ipynb_checkpoints/
