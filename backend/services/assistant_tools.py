@@ -72,9 +72,20 @@ def compact(text: str | None) -> str:
 
 
 def all_ai_regions() -> list[dict[str, Any]]:
-    records = list(csv_records("predicted_high_risk_2026_229.csv"))
+    records = [
+        clean_record(record)
+        for record in get_database()["prediction_2026_229"].find({}, {"_id": 0})
+    ]
     records.sort(key=lambda record: record.get("risk_rank_2026") or 10**9)
     return records
+
+
+def improvement_candidate_record(region: str) -> dict[str, Any] | None:
+    record = get_database()["infrastructure_blind_spots_49"].find_one(
+        {"sido_sgg_nm": region},
+        {"_id": 0},
+    )
+    return clean_record(record) if record else None
 
 
 def match_regions(region_name: str) -> list[str]:
@@ -125,14 +136,7 @@ def facility_record(region: str) -> dict[str, Any] | None:
     )
     if local:
         item = clean_record(local)
-        candidate = next(
-            (
-                record
-                for record in csv_records("infrastructure_blind_spots_49.csv")
-                if record.get("sido_sgg_nm") == region
-            ),
-            None,
-        )
+        candidate = improvement_candidate_record(region)
         if candidate:
             item.update(
                 {
@@ -173,14 +177,7 @@ def facility_record(region: str) -> dict[str, Any] | None:
     if not doc:
         return None
     item = clean_record(doc)
-    candidate = next(
-        (
-            record
-            for record in csv_records("infrastructure_blind_spots_49.csv")
-            if record.get("sido_sgg_nm") == region
-        ),
-        None,
-    )
+    candidate = improvement_candidate_record(region)
     if candidate:
         item.update(
             {
@@ -225,7 +222,7 @@ def get_region_analysis(region_name: str) -> dict[str, Any]:
         "risk_rank_2026": record.get("risk_rank_2026"),
         "facility_data_available": facility is not None,
         "facility_summary": facility,
-        "source": "results/predicted_high_risk_2026_229.csv",
+        "source": "prediction_2026_229",
     }
 
 
@@ -247,17 +244,18 @@ def compare_regions(region_names: list[str]) -> dict[str, Any]:
         "status": "ok" if items else "not_found",
         "items": items,
         "unresolved": unresolved,
-        "source": "results/predicted_high_risk_2026_229.csv",
+        "source": "prediction_2026_229",
     }
 
 
 def get_high_risk_top(limit: int = 5) -> dict[str, Any]:
     safe_limit = max(1, min(int(limit or 5), 20))
+    records = all_ai_regions()
     return {
         "status": "ok",
-        "items": all_ai_regions()[:safe_limit],
-        "total": len(all_ai_regions()),
-        "source": "results/predicted_high_risk_2026_229.csv",
+        "items": records[:safe_limit],
+        "total": len(records),
+        "source": "prediction_2026_229",
     }
 
 
@@ -292,19 +290,22 @@ def get_facility_analysis(region_name: str) -> dict[str, Any]:
             "improvement_priority_score"
         ),
         "improvement_priority_rank": facility.get("improvement_priority_rank"),
-        "source": "eda_main_49 + infrastructure_blind_spots_49.csv",
+        "source": "eda_main_49 + infrastructure_blind_spots_49",
     }
 
 
 def get_improvement_candidates(limit: int = 5) -> dict[str, Any]:
     safe_limit = max(1, min(int(limit or 5), 20))
-    records = list(csv_records("infrastructure_blind_spots_49.csv"))
+    records = [
+        clean_record(record)
+        for record in get_database()["infrastructure_blind_spots_49"].find({}, {"_id": 0})
+    ]
     records.sort(key=lambda record: record.get("improvement_priority_rank") or 10**9)
     return {
         "status": "ok",
         "items": records[:safe_limit],
         "total": len(records),
-        "source": "results/infrastructure_blind_spots_49.csv",
+        "source": "infrastructure_blind_spots_49",
         "note": "49개 시설분석 지역 기준 분석용 개선 검토 후보입니다. 공식 정책 우선순위가 아닙니다.",
     }
 

@@ -251,6 +251,15 @@ def source_metadata(source: str, count: int) -> dict[str, Any]:
     }
 
 
+def mongo_records(collection_name: str) -> list[dict[str, Any]]:
+    """Read a complete small analysis collection without exposing ObjectId."""
+    try:
+        cursor = get_database()[collection_name].find({}, {"_id": 0})
+        return [clean_document(doc) for doc in cursor]
+    except PyMongoError as exc:
+        raise HTTPException(status_code=503, detail={"error_type": type(exc).__name__}) from exc
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
     try:
@@ -370,7 +379,7 @@ def get_ai_high_risk(
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     offset: int = Query(default=0, ge=0),
 ) -> dict[str, Any]:
-    records = list(cached_csv_records("results/predicted_high_risk_2026_229.csv"))
+    records = mongo_records("prediction_2026_229")
     filtered = [
         record
         for record in records
@@ -392,7 +401,7 @@ def get_ai_high_risk(
             "target": MODEL_TARGET_DESCRIPTION,
             "prediction_year": 2026,
         },
-        "metadata": source_metadata("results/predicted_high_risk_2026_229.csv", len(filtered)),
+        "metadata": source_metadata("prediction_2026_229", len(filtered)),
     }
 
 
@@ -400,7 +409,7 @@ def get_ai_high_risk(
 def get_ai_top10(
     limit: int = Query(default=10, ge=1, le=50),
 ) -> dict[str, Any]:
-    records = list(cached_csv_records("results/predicted_high_risk_2026_229.csv"))
+    records = mongo_records("prediction_2026_229")
     records.sort(key=lambda record: record.get("risk_rank_2026") or 10**9)
     items = records[:limit]
     return {
@@ -410,7 +419,7 @@ def get_ai_top10(
             "target": MODEL_TARGET_DESCRIPTION,
             "prediction_year": 2026,
         },
-        "metadata": source_metadata("results/predicted_high_risk_2026_229.csv", len(items)),
+        "metadata": source_metadata("prediction_2026_229", len(items)),
     }
 
 
@@ -478,7 +487,7 @@ def get_improvement_candidates(
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     offset: int = Query(default=0, ge=0),
 ) -> dict[str, Any]:
-    records = list(cached_csv_records("results/infrastructure_blind_spots_49.csv"))
+    records = mongo_records("infrastructure_blind_spots_49")
     records.sort(key=lambda record: record.get("improvement_priority_rank") or 10**9)
     safe_limit = bounded_limit(limit)
     items = records[offset : offset + safe_limit]
@@ -493,7 +502,7 @@ def get_improvement_candidates(
         "score_definition": (
             "predicted_high_risk_probability_2026와 infrastructure_deficiency_score를 결합한 49개 지역 분석용 개선 검토 후보 점수입니다."
         ),
-        "metadata": source_metadata("results/infrastructure_blind_spots_49.csv", len(records)),
+        "metadata": source_metadata("infrastructure_blind_spots_49", len(records)),
     }
 
 
