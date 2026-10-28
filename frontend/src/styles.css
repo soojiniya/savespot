@@ -124,9 +124,13 @@ h1, h2, h3, p { margin: 0; }
 .service-brand { display: inline-flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 0; color: #fff; font-size: 18px; font-weight: 600; letter-spacing: -.025em; }
 .service-brand svg { color: #fff; }
 .service-nav { display: flex; flex-wrap: wrap; gap: 0 28px; flex: 1 1 auto; }
-.service-nav button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--dark-muted); padding: 20px 0 18px; font-size: 15px; font-weight: 500; transition: color 150ms ease-out; }
-.service-nav button:hover { color: #fff; }
-.service-nav button.active { color: #fff; border-bottom-color: #2fe0c0; box-shadow: 0 2px 10px -2px rgba(47,224,192,.55); }
+.service-nav button { position: relative; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--dark-muted); padding: 20px 0 18px; font-size: 15px; font-weight: 500; transition: color 150ms ease-out; }
+.service-nav button:hover { color: #d6d8dc; }
+.service-nav button.active { color: #fff; }
+/* active: a thin teal line just under the label (slightly wider than the text), no box or glow */
+.service-nav button::after { content: ""; position: absolute; left: -3px; right: -3px; bottom: -2px; height: 2px; border-radius: 2px; background: #2fe0c0; transform: scaleX(0); opacity: 0; transition: transform 200ms ease-out, opacity 200ms ease-out; pointer-events: none; }
+.service-nav button.active::after { transform: scaleX(1); opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .service-nav button::after { transition: none; } }
 .header-coverage { display: flex; align-items: center; gap: 16px; color: var(--dark-muted); font-size: 12.5px; }
 .header-coverage b { color: var(--dark-text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .header-coverage em { font-style: normal; border: 1px solid #33363b; border-radius: var(--radius-pill); padding: 2px 10px; }
@@ -273,6 +277,7 @@ h1, h2, h3, p { margin: 0; }
   .site-header-inner { gap: 0 20px; }
   .service-nav { order: 3; width: 100%; gap: 0 20px; overflow-x: auto; }
   .service-nav button { padding: 12px 0 10px; white-space: nowrap; }
+  .service-nav button::after { left: 0; right: 0; } /* the nav scrolls sideways here; keep the line inside it */
   .header-coverage { display: none; }
   .map-pagebar-status { margin-left: 0; }
   .filter-select { flex: 1 1 140px; }
@@ -1920,3 +1925,15 @@ button.ai2-row:hover { background: rgba(95,179,157,.05); }
 
 /* AI 분석 — small explanatory line under a section title */
 .panel-subnote { margin: -8px 0 14px; color: #8f9196; font-size: 12.5px; line-height: 1.6; }
+
+/* ---- filter label (i) help: icon beside "연도", tooltip on hover/focus only ---- */
+.filter-select > .filter-label-with-info { display: inline-flex; align-items: center; gap: 4px; }
+.info-tip { display: inline-grid; place-items: center; width: 16px; height: 16px; margin: -2px 0; padding: 0; border: 0; border-radius: 50%; background: none; color: #6b6d73; cursor: help; transition: color .15s; }
+.info-tip svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; }
+.info-tip:hover, .info-tip:focus-visible { color: #2fe0c0; }
+.info-tip:focus { outline: none; }
+.info-tip:focus-visible { box-shadow: 0 0 0 2px rgba(47,224,192,.35); }
+.info-tip-pop { position: fixed; z-index: 3000; width: max-content; max-width: min(240px, calc(100vw - 24px)); padding: 7px 10px; border: 1px solid rgba(47,224,192,.28); border-radius: 8px; background: #111214; color: #c9cbd0; font-size: 12px; line-height: 1.5; letter-spacing: 0; font-family: inherit; box-shadow: 0 8px 24px rgba(0,0,0,.45); pointer-events: none; animation: info-tip-in .14s ease-out; }
+.info-tip-pop::before { content: ""; position: absolute; top: -5px; left: calc(var(--arrow-x, 16px) - 4px); width: 8px; height: 8px; background: #111214; border-left: 1px solid rgba(47,224,192,.28); border-top: 1px solid rgba(47,224,192,.28); transform: rotate(45deg); }
+@keyframes info-tip-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .info-tip-pop { animation: none; } }

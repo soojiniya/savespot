@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import math
-import warnings
+import re
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -185,9 +186,10 @@ def model_metadata() -> dict[str, Any]:
             "model_name": None,
             "feature_cols": MODEL_FEATURES,
         }
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        bundle = joblib.load(model_path)
+    # Keep compatibility warnings visible in server logs. A silently loaded
+    # scikit-learn artifact can otherwise make a deployment look reproducible
+    # while using a different runtime version from the training environment.
+    bundle = joblib.load(model_path)
     return {
         "model_available": True,
         "model_name": bundle.get("model_name"),
@@ -207,6 +209,134 @@ def parse_accident_year(value: str | None) -> int | None | str:
         raise HTTPException(status_code=422, detail="accident_year must be an integer or null") from exc
 
 
+# ---------------------------------------------------------------------------
+# Hotspot region filters
+#
+# `hotspots_map` keeps the SIDO/SIGUNGU text exactly as each source published it,
+# so one province can appear under several spellings (경기 / 경기도, 강원 / 강원도 /
+# 강원특별자치도, 광주광역시(구), 전남광주통합특별시 ...). The stored documents are
+# not modified. Instead, the filter-options endpoint and the hotspot query both
+# go through the same index below: options are built from canonical names, and a
+# selected canonical name is resolved back to the raw values actually stored in
+# MongoDB. An option that is offered therefore always finds its documents.
+# ---------------------------------------------------------------------------
+EMPTY_FILTER_VALUES = {"", "all", "전체", "전국", "null", "none", "undefined"}
+
+# canonical names follow the 229-region analysis tables
+SIDO_ALIASES = {
+    "서울": "서울특별시",
+    "부산": "부산광역시",
+    "대구": "대구광역시",
+    "인천": "인천광역시",
+    "광주": "광주광역시",
+    "대전": "대전광역시",
+    "울산": "울산광역시",
+    "세종": "세종특별자치시",
+    "세종시": "세종특별자치시",
+    "경기": "경기도",
+    "강원": "강원특별자치도",
+    "강원도": "강원특별자치도",
+    "충북": "충청북도",
+    "충남": "충청남도",
+    "전북": "전북특별자치도",
+    "전라북도": "전북특별자치도",
+    "전남": "전라남도",
+    "경북": "경상북도",
+    "경남": "경상남도",
+    "제주": "제주특별자치도",
+    "제주도": "제주특별자치도",
+}
+MERGED_JEONNAM_GWANGJU = "전남광주통합특별시"
+GWANGJU_GU = {"동구", "서구", "남구", "북구", "광산구"}
+
+
+def filter_text(value: Any) -> str | None:
+    """NFC-normalised, whitespace-collapsed filter text; None for "no filter"."""
+    if not isinstance(value, str):
+        return None
+    text = re.sub(r"\s+", " ", unicodedata.normalize("NFC", value)).strip()
+    return None if text.lower() in EMPTY_FILTER_VALUES else text
+
+
+def canonical_sigungu(value: Any) -> str | None:
+    text = filter_text(value)
+    if text is None:
+        return None
+    # "전주시덕진구" and "전주시 덕진구" are the same district
+    return re.sub(r"^(\S+시)\s*(\S+구)$", r"\1 \2", text)
+
+
+def canonical_sido(value: Any, sigungu: Any = None) -> str | None:
+    text = filter_text(value)
+    if text is None:
+        return None
+    text = re.sub(r"\s*\(구\)$", "", text)  # 광주광역시(구) -> 광주광역시
+    if text == MERGED_JEONNAM_GWANGJU:
+        # same rule as the preprocessing notebooks: split back by district
+        return "광주광역시" if canonical_sigungu(sigungu) in GWANGJU_GU else "전라남도"
+    return SIDO_ALIASES.get(text, text)
+
+
+def sigungu_matches(stored: str | None, wanted: str) -> bool:
+    # "전주시" (analysis tables) also covers "전주시 완산구" / "전주시 덕진구"
+    return stored is not None and (stored == wanted or stored.startswith(f"{wanted} "))
+
+
+RegionIndex = dict[str, dict[str | None, set[tuple[str, Any]]]]
+
+
+def hotspot_region_index(base_query: dict[str, Any] | None = None) -> RegionIndex:
+    """canonical sido -> canonical sigungu -> {(raw sido, raw sigungu)} as stored."""
+    pipeline: list[dict[str, Any]] = [
+        {"$match": {**(base_query or {}), "sido": {"$nin": [None, ""]}}},
+        {"$group": {"_id": {"sido": "$sido", "sigungu": "$sigungu"}}},
+    ]
+    index: RegionIndex = {}
+    for row in get_database()["hotspots_map"].aggregate(pipeline):
+        key = row.get("_id") or {}
+        raw_sido, raw_sigungu = key.get("sido"), key.get("sigungu")
+        sido = canonical_sido(raw_sido, raw_sigungu)
+        if sido is None:
+            continue
+        index.setdefault(sido, {}).setdefault(canonical_sigungu(raw_sigungu), set()).add(
+            (raw_sido, raw_sigungu if isinstance(raw_sigungu, str) else None)
+        )
+    return index
+
+
+def hotspot_region_condition(sido: str | None, sigungu: str | None) -> dict[str, Any] | None:
+    """Mongo condition for a (canonical or raw) sido/sigungu selection, or None."""
+    wanted_sigungu = canonical_sigungu(sigungu)
+    wanted_sido = canonical_sido(sido, wanted_sigungu)
+    if wanted_sido is None and wanted_sigungu is None:
+        return None
+    index = hotspot_region_index()
+    selected: dict[str, set[Any]] = {}  # raw sido -> raw sigungu values
+    for canon_sido, by_sigungu in index.items():
+        if wanted_sido is not None and canon_sido != wanted_sido:
+            continue
+        for canon_sigungu, pairs in by_sigungu.items():
+            if wanted_sigungu is not None and not sigungu_matches(canon_sigungu, wanted_sigungu):
+                continue
+            for raw_sido, raw_sigungu in pairs:
+                selected.setdefault(raw_sido, set()).add(raw_sigungu)
+    if not selected:
+        return {"sido": {"$in": []}}  # unknown region: an empty result, never "all"
+    all_pairs: dict[str, set[Any]] = {}
+    for by_sigungu in index.values():
+        for pairs in by_sigungu.values():
+            for raw_sido, raw_sigungu in pairs:
+                all_pairs.setdefault(raw_sido, set()).add(raw_sigungu)
+    clauses: list[dict[str, Any]] = []
+    for raw_sido in sorted(selected):
+        sigungus = selected[raw_sido]
+        if sigungus == all_pairs.get(raw_sido):
+            clauses.append({"sido": raw_sido})
+        else:
+            clauses.append({"sido": raw_sido, "sigungu": {"$in": sorted(sigungus, key=lambda v: v or "")}})
+    return clauses[0] if len(clauses) == 1 else {"$or": clauses}
+
+
 def hotspot_query(
     source_type: str | None = None,
     accident_year: str | None = None,
@@ -214,15 +344,15 @@ def hotspot_query(
     sigungu: str | None = None,
 ) -> dict[str, Any]:
     query: dict[str, Any] = {}
-    if source_type:
-        query["source_type"] = source_type
+    source = filter_text(source_type)
+    if source:
+        query["source_type"] = source
     parsed_year = parse_accident_year(accident_year)
     if parsed_year != "__not_set__":
         query["accident_year"] = parsed_year
-    if sido:
-        query["sido"] = sido
-    if sigungu:
-        query["sigungu"] = sigungu
+    region = hotspot_region_condition(sido, sigungu)
+    if region:
+        query.update(region)
     return query
 
 
@@ -290,6 +420,17 @@ def get_assistant_status() -> dict[str, Any]:
 @app.post("/api/assistant/query", response_model=AssistantQueryResponse)
 def query_assistant(payload: AssistantQueryRequest) -> dict[str, Any]:
     """Answer a natural-language question using read-only project tools."""
+    status = assistant_status()
+    if not status["enabled"]:
+        # This is a server-side gate. The Vite build flag only changes the UI
+        # and must not be relied on to prevent paid provider requests.
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "ASSISTANT_DISABLED",
+                "message": status["message"],
+            },
+        )
     return answer_question(payload.question.strip())
 
 
@@ -572,6 +713,37 @@ def get_hotspots(
                 "total": total,
             },
             "meaning": "주변 및 지도 응답은 공식 기준으로 선정된 사고다발지역 지점이며 전체 사고자료나 학교별 위험도가 아닙니다.",
+        }
+    except PyMongoError as exc:
+        raise HTTPException(status_code=503, detail={"error_type": type(exc).__name__}) from exc
+
+
+@app.get("/api/hotspots/filter-options")
+def get_hotspot_filter_options(
+    source_type: str | None = Query(default=None),
+    accident_year: str | None = Query(
+        default=None,
+        description="Integer year for child_pedestrian_hotspot, or omit for all available years",
+    ),
+) -> dict[str, Any]:
+    """Return the complete filter domain without loading map markers.
+
+    Marker responses are intentionally capped for rendering performance. This
+    endpoint therefore remains independent from `/api/hotspots?limit=...` so
+    every valid SIDO/SIGUNGU pair remains selectable.
+    """
+    try:
+        # same normalisation as /api/hotspots (see hotspot_region_condition)
+        index = hotspot_region_index(hotspot_query(source_type=source_type, accident_year=accident_year))
+        sigungus_by_sido = {
+            sido: sorted(sigungu for sigungu in by_sigungu if sigungu)
+            for sido, by_sigungu in sorted(index.items())
+        }
+        pair_count = sum(len(sigungus) for sigungus in sigungus_by_sido.values())
+        return {
+            "sidos": sorted(sigungus_by_sido),
+            "sigungus_by_sido": sigungus_by_sido,
+            "metadata": source_metadata("hotspots_map filter domain (normalised)", pair_count),
         }
     except PyMongoError as exc:
         raise HTTPException(status_code=503, detail={"error_type": type(exc).__name__}) from exc

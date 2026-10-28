@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from pymongo.errors import PyMongoError
 
 from backend.db import get_database
 
@@ -37,6 +38,10 @@ MODEL_FEATURES = [
 MODEL_TARGET_DESCRIPTION = (
     "다음 연도 시군구의 어린이 인구 1만 명당 사고율이 해당 연도 상위 25% 이상인지 예측하는 지역 단위 분류 모델입니다."
 )
+
+
+class AssistantDataSourceUnavailableError(RuntimeError):
+    """MongoDB connectivity failure, distinct from a region with no facility row."""
 
 
 def clean_value(value: Any) -> Any:
@@ -126,33 +131,6 @@ def resolve_region(region_name: str) -> dict[str, Any]:
 
 
 def facility_record(region: str) -> dict[str, Any] | None:
-    local = next(
-        (
-            record
-            for record in csv_records("eda_main_49.csv")
-            if record.get("sido_sgg_nm") == region or record.get("region_name") == region
-        ),
-        None,
-    )
-    if local:
-        item = clean_record(local)
-        candidate = improvement_candidate_record(region)
-        if candidate:
-            item.update(
-                {
-                    "infrastructure_deficiency_score": candidate.get(
-                        "infrastructure_deficiency_score"
-                    ),
-                    "improvement_priority_score": candidate.get(
-                        "improvement_priority_score"
-                    ),
-                    "improvement_priority_rank": candidate.get(
-                        "improvement_priority_rank"
-                    ),
-                }
-            )
-        return item
-
     try:
         db = get_database()
         doc = db["eda_main_49"].find_one(
@@ -172,12 +150,19 @@ def facility_record(region: str) -> dict[str, Any] | None:
                 "priority_score": 1,
             },
         )
-    except Exception:
-        return None
+    except (PyMongoError, RuntimeError) as exc:
+        raise AssistantDataSourceUnavailableError(
+            "시설 상세분석 데이터베이스에 연결할 수 없습니다."
+        ) from exc
     if not doc:
         return None
     item = clean_record(doc)
-    candidate = improvement_candidate_record(region)
+    try:
+        candidate = improvement_candidate_record(region)
+    except (PyMongoError, RuntimeError) as exc:
+        raise AssistantDataSourceUnavailableError(
+            "개선 검토 후보 데이터베이스에 연결할 수 없습니다."
+        ) from exc
     if candidate:
         item.update(
             {
@@ -203,7 +188,15 @@ def get_region_analysis(region_name: str) -> dict[str, Any]:
     record = next(
         item for item in all_ai_regions() if item.get("sido_sgg_nm") == region
     )
-    facility = facility_record(region)
+    try:
+        facility = facility_record(region)
+    except AssistantDataSourceUnavailableError as exc:
+        return {
+            "status": "data_source_unavailable",
+            "region": region,
+            "facility_data_available": None,
+            "message": str(exc),
+        }
     return {
         "status": "ok",
         "region": region,
@@ -264,7 +257,15 @@ def get_facility_analysis(region_name: str) -> dict[str, Any]:
     if resolved["status"] != "ok":
         return resolved
     region = resolved["region"]
-    facility = facility_record(region)
+    try:
+        facility = facility_record(region)
+    except AssistantDataSourceUnavailableError as exc:
+        return {
+            "status": "data_source_unavailable",
+            "region": region,
+            "facility_data_available": None,
+            "message": str(exc),
+        }
     if facility is None:
         return {
             "status": "not_available",

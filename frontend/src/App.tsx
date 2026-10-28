@@ -9,6 +9,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
+import { createPortal } from "react-dom";
 import { BarChart } from "./components/charts/bar-chart";
 import { Bar } from "./components/charts/bar";
 import { BarXAxis } from "./components/charts/bar-x-axis";
@@ -78,6 +79,10 @@ type Hotspot = {
 type HotspotResponse = {
   items: Hotspot[];
   pagination: { limit: number; offset: number; count: number; total: number };
+};
+type HotspotFilterOptionsResponse = {
+  sidos: string[];
+  sigungus_by_sido: Record<string, string[]>;
 };
 type NearbyItem = Hotspot & { distance_m?: number };
 type NearbyResponse = { items: NearbyItem[] };
@@ -418,8 +423,85 @@ function BigMetric({
     </div>
   );
 }
+/*
+ * Small (i) help button for a filter label. The note shows only on hover or
+ * keyboard focus, rendered in a portal with fixed positioning and clamped to
+ * the viewport so it never runs off a phone screen or gets clipped by a panel.
+ */
+function InfoTip({ text }: { text: string }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; arrow: number } | null>(null);
+  const tipId = useMemo(() => `info-tip-${Math.random().toString(36).slice(2, 8)}`, []);
+  const show = () => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const width = Math.min(240, window.innerWidth - 24);
+    const center = r.left + r.width / 2;
+    const left = Math.max(12, Math.min(center - width / 2, window.innerWidth - 12 - width));
+    setPos({ left, top: r.bottom + 8, arrow: center - left });
+  };
+  const hide = () => setPos(null);
+  useEffect(() => {
+    if (!pos) return;
+    const close = () => setPos(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [pos]);
+  return (
+    <>
+      <button
+        ref={ref}
+        type="button"
+        className="info-tip"
+        aria-label={text}
+        aria-describedby={pos ? tipId : undefined}
+        onMouseEnter={show}
+        // stays open while focused (keyboard, or tapped on a touch screen) until blur / Esc
+        onMouseLeave={() => {
+          if (document.activeElement !== ref.current) hide();
+        }}
+        onFocus={show}
+        onBlur={hide}
+        onClick={(event) => {
+          // inside a <label>: keep the click from opening the select; a tap shows the note
+          // on touch screens and it closes again when focus moves away
+          event.preventDefault();
+          show();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") hide();
+        }}
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="6.5" />
+          <path d="M8 7.2v3.6M8 5.1v.1" />
+        </svg>
+      </button>
+      {pos
+        ? createPortal(
+            <div
+              id={tipId}
+              role="tooltip"
+              className="info-tip-pop"
+              style={{ left: pos.left, top: pos.top, ["--arrow-x" as string]: `${pos.arrow}px` }}
+            >
+              {text}
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
 function FilterSelect({
   label,
+  info,
   value,
   options,
   disabled,
@@ -428,6 +510,7 @@ function FilterSelect({
   onChange,
 }: {
   label: string;
+  info?: string;
   value: string;
   options: FilterOption[];
   disabled?: boolean;
@@ -437,7 +520,10 @@ function FilterSelect({
 }) {
   return (
     <label className={`filter-select ${disabled ? "is-disabled" : ""}`}>
-      <span>{label}</span>
+      <span className={info ? "filter-label-with-info" : undefined}>
+        {label}
+        {info ? <InfoTip text={info} /> : null}
+      </span>
       <select
         value={value}
         disabled={disabled}
@@ -1267,6 +1353,10 @@ function MapView({
   const [loading, setLoading] = useState(true);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filterDomain, setFilterDomain] = useState<HotspotFilterOptionsResponse>({
+    sidos: [],
+    sigungus_by_sido: {},
+  });
 
   const loadHotspots = useCallback(
     async (nextFilters = filters, signal?: AbortSignal) => {
@@ -1377,6 +1467,29 @@ function MapView({
     return () => controller.abort();
   }, [filters, loadHotspots]);
   useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    if (filters.source_type !== "all") params.set("source_type", filters.source_type);
+    if (
+      filters.source_type === "child_pedestrian_hotspot" &&
+      filters.accident_year !== "all"
+    ) {
+      params.set("accident_year", filters.accident_year);
+    }
+    fetchJson<HotspotFilterOptionsResponse>(
+      `/api/hotspots/filter-options?${params}`,
+      controller.signal,
+    )
+      .then((data) => setFilterDomain(data))
+      .catch((cause) => {
+        if ((cause as Error).name !== "AbortError") {
+          // Do not fall back to the limited marker list on a transient failure.
+          console.error("지도 필터 목록을 불러오지 못했습니다.", cause);
+        }
+      });
+    return () => controller.abort();
+  }, [filters.accident_year, filters.source_type]);
+  useEffect(() => {
     if (!initialRegion) return;
     const [sido, ...sigunguParts] = initialRegion.split(" ");
     const sigungu = sigunguParts.join(" ");
@@ -1390,22 +1503,19 @@ function MapView({
     setNearby([]);
   }, [initialRegion]);
   const options = useMemo(() => {
-    const sidos = [
-      ...new Set(items.map((item) => item.sido).filter(Boolean)),
-    ].sort((a, b) => (a ?? "").localeCompare(b ?? "", "ko"));
-    const sigungus =
-      filters.sido === "all"
-        ? []
-        : [
-            ...new Set(
-              items
-                .filter((item) => item.sido === filters.sido)
-                .map((item) => item.sigungu)
-                .filter(Boolean),
-            ),
-          ].sort((a, b) => (a ?? "").localeCompare(b ?? "", "ko"));
-    return { sidos, sigungus };
-  }, [filters.sido, items]);
+    // A region opened from 지역분석 (e.g. "전북특별자치도 전주시") may use a name
+    // that is not itself an option; keep it selectable so the select shows what
+    // is actually being queried (the API resolves it to the stored names).
+    const withCurrent = (list: string[], current: string) =>
+      current !== "all" && !list.includes(current) ? [current, ...list] : list;
+    return {
+      sidos: withCurrent(filterDomain.sidos, filters.sido),
+      sigungus:
+        filters.sido === "all"
+          ? []
+          : withCurrent(filterDomain.sigungus_by_sido[filters.sido] ?? [], filters.sigungu),
+    };
+  }, [filterDomain, filters.sido, filters.sigungu]);
   const loadNearby = useCallback(async () => {
     const target = selected
       ? [selected.latitude, selected.longitude]
@@ -1489,6 +1599,7 @@ function MapView({
           />
           <FilterSelect
             label="연도"
+            info="연도 정보가 있는 보행어린이 사고다발지역에만 적용됩니다."
             value={yearDisabled ? "disabled" : filters.accident_year}
             displayValue={yearDisabled ? "연도 미제공" : undefined}
             disabled={yearDisabled}
@@ -1534,11 +1645,6 @@ function MapView({
           </span>
         </div>
       </section>
-      {filters.source_type === "all" && filters.accident_year !== "all" ? (
-        <p className="year-filter-note">
-          연도 선택 시 연도 정보가 있는 보행어린이 데이터에 적용됩니다.
-        </p>
-      ) : null}
 
       <section className="map-workspace">
         <HotspotList
@@ -2465,7 +2571,7 @@ function RecentTrendLine({ selected }: { selected: AiRiskRegion }) {
       : null;
   const data = [
     {
-      date: new Date("2025-01-01"),
+      date: new Date("2024-01-01"),
       rate:
         rateNow != null && rateChange != null
           ? rateNow - rateChange
@@ -2475,7 +2581,7 @@ function RecentTrendLine({ selected }: { selected: AiRiskRegion }) {
           ? countNow - countChange
           : (countNow ?? 0),
     },
-    { date: new Date("2026-01-01"), rate: rateNow ?? 0, count: countNow ?? 0 },
+    { date: new Date("2025-01-01"), rate: rateNow ?? 0, count: countNow ?? 0 },
   ];
   return (
     <div className="recent-trend-line">
