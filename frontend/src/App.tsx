@@ -364,18 +364,26 @@ function MapViewport({
   }, [map]);
   useEffect(() => {
     if (selected || fitted.current) return;
-    map.fitBounds(
-      L.latLngBounds([
-        [33.05, 125.9],
-        [38.6, 129.7],
-      ]),
-      {
-        animate: false,
-        // keep the peninsula clear of the floating list (left) and detail (right) panels
-        paddingTopLeft: window.innerWidth > 1100 ? [390, 110] : [40, 40],
-        paddingBottomRight: window.innerWidth > 1100 ? [410, 60] : [40, 40],
-      },
-    );
+    const korea = L.latLngBounds([
+      [33.05, 125.9],
+      [38.6, 129.7],
+    ]);
+    const desktop = window.innerWidth > 1100;
+    // keep the peninsula clear of the floating list (left) and detail (right) panels
+    const paddingTopLeft = L.point(desktop ? [390, 110] : [40, 40]);
+    const paddingBottomRight = L.point(desktop ? [410, 60] : [40, 40]);
+    if (!desktop) {
+      map.fitBounds(korea, { animate: false, paddingTopLeft, paddingBottomRight });
+    } else {
+      // Desktop first view: fill the padded map area with the mainland + Jeju instead of
+      // dropping to the next whole zoom level (which could leave the peninsula ~30-50%
+      // smaller than the space allows). Fractional zoom is allowed for this initial fit only;
+      // the +/- buttons, wheel zoom and the fly-to on selection keep whole-step snapping.
+      const snap = map.options.zoomSnap;
+      map.options.zoomSnap = 0;
+      map.fitBounds(korea, { animate: false, paddingTopLeft, paddingBottomRight });
+      map.options.zoomSnap = snap;
+    }
     fitted.current = true;
   }, [map, selected]);
   useEffect(() => {
