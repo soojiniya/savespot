@@ -1,14 +1,14 @@
-pandas==3.0.6
-numpy==2.5.3
-scikit-learn==1.6.1
-matplotlib
-geopandas
-openpyxl
-joblib==1.6.0
-requests
-pymongo==4.18.2
-dnspython
+# API runtime (FastAPI backend, also what Render installs).
+# Analysis notebooks, chart scripts and tests: pip install -r requirements-dev.txt
 fastapi==0.142.2
 uvicorn==0.54.0
+pymongo==4.18.2
+dnspython
 python-dotenv
-pytest==9.0.2
+requests
+pandas==3.0.6
+numpy==2.5.3
+# models/high_risk_classifier.joblib was trained with scikit-learn 1.6.1;
+# 1.6.1 has wheels for Python 3.12/3.13 only (see .python-version).
+scikit-learn==1.6.1
+joblib==1.6.0

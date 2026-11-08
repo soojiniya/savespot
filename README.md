@@ -126,9 +126,20 @@
 ```bash
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # API 실행만 필요하면 requirements.txt
 uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
 ```
+
+`requirements.txt`는 API 실행에 필요한 패키지만 담고 있으며 Render 배포에 그대로 사용됩니다. 분석 노트북·차트 스크립트·테스트는 `requirements-dev.txt`로 설치합니다. Python 버전은 `.python-version`(3.12)을 따릅니다.
+
+### 배포 (Render 백엔드)
+
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+- Health Check Path: `/healthz` (DB를 거치지 않는 즉시 응답), DB 연결 확인은 `/health`
+- 환경변수: `MONGODB_URI`, `MONGODB_DB_NAME`, `AI_ASSISTANT_ENABLED=false`, (선택) `CORS_ORIGINS`, `PYTHON_VERSION=3.12.12`
+- MongoDB Atlas Network Access에 Render에서 접속할 수 있는 IP가 허용되어 있어야 합니다.
+- 설정 예시는 `render.yaml`에 있습니다.
 
 MongoDB Atlas와 LLM을 사용하는 환경에서는 필요한 환경변수를 로컬 `.env`에 설정합니다. 비밀 키와 연결 문자열은 저장소에 포함하거나 출력하지 않습니다.
 

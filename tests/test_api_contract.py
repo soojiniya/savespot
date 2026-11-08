@@ -270,3 +270,9 @@ def test_every_offered_option_returns_results(database: Database) -> None:
 def test_offered_sidos_partition_all_hotspots(database: Database) -> None:
     options = main.get_hotspot_filter_options(source_type=None, accident_year=None)
     assert sum(hotspot_total(sido=sido) for sido in options["sidos"]) == 1803
+
+
+def test_liveness_endpoints_do_not_need_database() -> None:
+    # Render health check path: must answer without MongoDB
+    assert main.liveness() == {"status": "ok"}
+    assert main.root()["status"] == "ok"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import os
 import re
 import unicodedata
 from functools import lru_cache
@@ -14,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import pandas as pd
 from pydantic import BaseModel, Field
+import pymongo
 from pymongo.errors import PyMongoError
 
 from backend.db import close_client, get_client, get_database
@@ -112,11 +114,17 @@ app = FastAPI(
     ),
 )
 
+# Production frontend origin, plus any extra origins from CORS_ORIGINS
+# (comma-separated, e.g. a Vercel preview URL). Local dev ports stay allowed below.
+CORS_ORIGINS = ["https://savespot-amber.vercel.app"] + [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://savespot-amber.vercel.app",
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_origin_regex=r"^http://(127\.0\.0\.1|localhost):\d+$",
     allow_credentials=False,
     allow_methods=["GET", "POST"],
@@ -390,10 +398,31 @@ def mongo_records(collection_name: str) -> list[dict[str, Any]]:
         raise HTTPException(status_code=503, detail={"error_type": type(exc).__name__}) from exc
 
 
+@app.get("/")
+def root() -> dict[str, Any]:
+    """Lightweight landing response (no database access)."""
+    return {"service": "SaveSpot API", "status": "ok", "health": "/health", "liveness": "/healthz"}
+
+
+@app.get("/healthz")
+def liveness() -> dict[str, str]:
+    """Liveness only: answers immediately without touching MongoDB.
+
+    Use this as the hosting platform's health-check path so a slow or blocked
+    database connection can never stop the web process from being marked live.
+    """
+    return {"status": "ok"}
+
+
+HEALTH_DB_TIMEOUT_SECONDS = 4
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
     try:
-        get_client().admin.command("ping")
+        # bound the whole check (server selection + ping) so /health always answers
+        with pymongo.timeout(HEALTH_DB_TIMEOUT_SECONDS):
+            get_client().admin.command("ping")
         db = get_database()
         return {
             "status": "ok",

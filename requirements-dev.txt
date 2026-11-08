@@ -1,0 +1,6 @@
+# Local analysis, notebooks, chart scripts and tests (includes the API runtime).
+-r requirements.txt
+matplotlib
+geopandas
+openpyxl
+pytest==9.0.2

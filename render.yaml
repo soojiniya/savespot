@@ -1,0 +1,23 @@
+# Render Blueprint for the SaveSpot API (FastAPI + MongoDB Atlas).
+# Values marked sync: false are secrets/settings entered in the Render dashboard;
+# they are never stored in this repository.
+services:
+  - type: web
+    name: savespot
+    runtime: python
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.12"
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        sync: false
+      - key: AI_ASSISTANT_ENABLED
+        value: "false"
+      - key: CORS_ORIGINS
+        sync: false

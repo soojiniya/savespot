@@ -29,10 +29,13 @@ import { useReveal } from "./components/region/use-reveal";
 import { topoToGeoJSON } from "./components/map/topo";
 import { ScrollLanding, type LandingHotspot } from "./components/landing/scroll-landing";
 
+// Set VITE_API_BASE in the hosting environment (Vercel → Settings → Environment
+// Variables). If a production build is made without it, fall back to the public
+// Render API instead of localhost, which a visitor's browser could never reach.
 const API_BASE = (
-  import.meta.env.VITE_API_BASE ??
-  import.meta.env.VITE_API_URL ??
-  "http://127.0.0.1:8000"
+  import.meta.env.VITE_API_BASE ||
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? "https://savespot.onrender.com" : "http://127.0.0.1:8000")
 ).replace(/\/$/, "");
 // Public demo builds set VITE_AI_ASSISTANT_ENABLED=false: the AI question box
 // stays on screen but never sends a request (so no OpenAI cost can occur).
