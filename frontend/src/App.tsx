@@ -2803,7 +2803,6 @@ function AiAnalysis({
           lead="다음 연도,"
           title="상대적 고위험 신호가 강한 지역"
           copy="Logistic Regression 모델이 전국 229개 지역의 다음 연도 상대적 고위험 여부를 분석합니다. 예측은 확률이 아니라 지역 간 비교를 위한 분석 점수입니다."
-          warning="AI 점수는 실제 발생 가능성 수치가 아닌 상대적 고위험 분석 결과입니다."
         />
         {error ? <div className="inline-error">{error}</div> : null}
         {loading ? (
@@ -3068,6 +3067,9 @@ function AiAnalysis({
                 사고건수와 사고율은 229개 AI 결과의 직전 연도 지표이며, 시설 데이터 여부와 개선 검토 순위는 49개 시설분석 데이터가 있는 지역에만 표시됩니다.
               </p>
             </section>
+            <p className="ai2-bottom-warning" role="note">
+              주의 · AI 점수는 실제 발생 가능성이 아닌 상대적 고위험 분석 결과입니다.
+            </p>
           </div>
         )}
       </div>
@@ -3093,67 +3095,63 @@ function Guide() {
           kicker="데이터안내 · 해석 기준"
           lead="숫자보다 먼저,"
           title="맥락을 읽으세요."
-          copy="세이프스팟의 지도와 AI 결과를 올바르게 해석하기 위한 기준입니다. 데이터 범위가 다른 지표를 하나의 의미로 합치지 않습니다."
+          copy="지도와 AI 결과를 올바르게 해석하기 위한 기준입니다."
         />
         <section className="guide-story rv" aria-label="공모전 분석 스토리라인">
           <div className="guide-story-lead">
             <h2>어린이 교통안전 의사결정을 위한 데이터 파이프라인</h2>
             <p>
-              이 서비스는 공식 사고다발지역 지점, 전국 229개 시군구 패널,
-              그리고 확보 가능한 49개 지역 시설 데이터를 각각의 의미대로 보존한 뒤
-              지도·AI 분석·개선 검토 후보로 연결합니다.
+              <span className="lead-line">사고다발지역 지점·229개 시군구 패널·49개 지역 시설 데이터를 각각의 의미에 맞게 보존하고,</span>
+              <br />
+              <span className="lead-line">지도·AI 분석·개선 검토 후보로 연결합니다.</span>
             </p>
           </div>
           <div className="story-rows">
             <div>
               <strong>문제 정의</strong>
-              <p>사고다발지역 지점과 지역 단위 위험 신호, 시설 부족 신호를 분리해 담당자가 어디를 먼저 살펴볼지 판단할 수 있게 합니다.</p>
+              <p>사고다발 지점·지역 위험 신호·시설 부족 신호를 분리해, 먼저 살펴볼 곳을 판단하도록 돕습니다.</p>
             </div>
             <div className="story-row-wide">
               <strong>데이터 수집 출처와 기간</strong>
               <div className="guide-data-split">
                 <section>
                   <h3>AI 분석 데이터</h3>
-                  <p>2020–2025 어린이 교통사고, 어린이 인구, 자동차 등록대수를 결합해 전국 229개 시군구를 분석합니다.</p>
+                  <p>2020–2025 어린이 교통사고·인구·자동차 등록대수로 229개 시군구를 분석합니다.</p>
                 </section>
                 <section>
                   <h3>지도 데이터</h3>
-                  <p>공식 사고다발지역 선정지점 1,803개를 표시합니다. schoolzone_hotspot과 child_pedestrian_hotspot을 사용하며, 전체 사고건수 데이터가 아니라 공식 기준으로 선정된 지점 데이터입니다.</p>
+                  <p>공식 사고다발지역 선정지점 1,803개를 표시합니다. 전체 사고건수가 아닙니다.</p>
                 </section>
                 <section>
                   <h3>시설 상세분석 데이터</h3>
-                  <p>횡단보도, 신호등, 어린이보호구역, CCTV 4종 시설 데이터가 공통 확보된 49개 지역만 상세 시설분석에 포함합니다.</p>
+                  <p>횡단보도·신호등·보호구역·CCTV 4종이 모두 확보된 49개 지역만 포함합니다.</p>
                 </section>
               </div>
             </div>
             <div>
               <strong>전처리 과정</strong>
-              <p>시도·시군구 명칭을 표준화하고 좌표·연도·사고/사상자 수를 정리했습니다. 연도가 없는 어린이보호구역 자료에는 임의 연도를 붙이지 않았습니다.</p>
+              <p>시도·시군구 명칭을 표준화하고 좌표·연도·사고/사상자 수를 정리했습니다.</p>
             </div>
             <div>
               <strong>AI 모델링 과정</strong>
-              <p>전국 229개 시군구를 대상으로 직전 연도 어린이 인구, 자동차 등록대수, 사고건수·사고율 변화, 최근 2년 평균 사고건수 등을 feature로 구성했습니다.</p>
+              <p>직전 연도 어린이 인구·자동차 등록대수·사고율 변화·최근 2년 평균 사고건수 등을 feature로 사용했습니다.</p>
             </div>
             <div>
               <strong>모델 비교와 선택</strong>
-              <p>Logistic Regression, Random Forest, HistGradientBoosting을 비교했고 평균 ROC-AUC와 Average Precision(PR-AUC)이 가장 안정적인 Logistic Regression을 최종 모델로 사용했습니다.</p>
+              <p>Logistic Regression·Random Forest·HistGradientBoosting 중 평균 ROC-AUC·PR-AUC가 가장 안정적인 Logistic Regression을 선택했습니다.</p>
             </div>
             <div>
               <strong>성능 검증</strong>
               <p>
-                Walk-forward 검증과 평균 성능지표를 확인했습니다.
+                Walk-forward 검증 기준
                 {logisticMetric
-                  ? ` 최종 모델 평균 ROC-AUC ${formatMetric(logisticMetric.roc_auc)}, Average Precision(PR-AUC) ${formatMetric(logisticMetric.average_precision)}, Recall ${formatMetric(logisticMetric.recall)}입니다.`
+                  ? ` 평균 ROC-AUC ${formatMetric(logisticMetric.roc_auc)}, PR-AUC ${formatMetric(logisticMetric.average_precision)}, Recall ${formatMetric(logisticMetric.recall)}입니다.`
                   : " 성능지표는 /api/model/info 응답 기준으로 표시됩니다."}
               </p>
             </div>
             <div>
-              <strong>분석 한계</strong>
-              <p>사고다발지역은 전체 사고자료가 아니며, AI 점수는 실제 사고 발생확률이 아닙니다. 49개 밖 지역의 시설값은 0으로 채우지 않고 미제공으로 구분합니다.</p>
-            </div>
-            <div>
               <strong>활용방안</strong>
-              <p>지도에서 지점을 확인하고, 지역분석에서 공통지표를 비교한 뒤, AI 분석에서 상대적 고위험 신호와 시설 부족 신호가 겹치는 후보를 검토합니다.</p>
+              <p>지도로 지점을 확인하고 지역을 비교한 뒤, 고위험·시설 부족 신호가 겹치는 후보를 검토합니다.</p>
             </div>
           </div>
         </section>
@@ -3217,9 +3215,8 @@ function Guide() {
             <span className="kicker">A · MAP DATA</span>
             <h2>사고다발지역이란?</h2>
             <p>
-              지도에 표시된 항목은 전체 어린이 교통사고 위치 목록이 아닙니다.
-              공식 기준에 따라 별도로 선정된 사고다발지역 지점이며, 선정지점 수를
-              전체 사고건수로 해석하지 않습니다.
+              지도의 항목은 전체 사고 위치가 아니라, 공식 기준으로 선정된
+              사고다발지역 지점입니다.
             </p>
             <div className="guide-callout">
               <strong>1,803개 선정지점</strong>
@@ -3230,9 +3227,8 @@ function Guide() {
             <span className="kicker">B · YEAR POLICY</span>
             <h2>연도 정보는 정확하게</h2>
             <p>
-              보행어린이 사고다발지역은 원본에 제공된 실제 연도만 필터링합니다.
-              어린이보호구역 사고다발지역은 공식 연도 필드가 확인되지 않는 경우
-              특정 연도를 임의로 붙이지 않습니다.
+              보행어린이 자료는 원본의 실제 연도만 쓰고, 어린이보호구역 자료는
+              연도가 없으면 임의로 붙이지 않습니다.
             </p>
             <div className="guide-compare-line">
               <b>확인된 연도만 표시</b>
@@ -3244,10 +3240,8 @@ function Guide() {
             <span className="kicker">C · AI INTERPRETATION</span>
             <h2>AI 점수와 순위의 의미</h2>
             <p>
-              AI 상대적 고위험 점수는 실제 사고가 발생할 확률이 아니라, 모델이
-              상위 25% 고위험군과 얼마나 유사하다고 판단했는지를 나타내는
-              상대적 분류 점수입니다. 전국 순위 역시 공식 교통안전 평가 순위가
-              아니라 본 프로젝트의 분석용 순위입니다.
+              AI 점수는 사고 발생 확률이 아니라 상위 25% 고위험군과의 유사 정도를
+              나타내는 상대 점수입니다. 전국 순위도 공식 평가가 아닌 분석용 순위입니다.
             </p>
             <div className="guide-equation">
               <strong>분석점수</strong>
@@ -3265,7 +3259,7 @@ function Guide() {
               </div>
               <div>
                 <dt>예측 목표</dt>
-                <dd>다음 연도 어린이 1만명당 사고율이 해당 연도 전국 상위 25% 수준에 해당하는 고위험군인지 분류</dd>
+                <dd>다음 연도 어린이 1만명당 사고율이 전국 상위 25%인 고위험군인지 분류</dd>
               </div>
               <div>
                 <dt>Target</dt>
@@ -3276,16 +3270,11 @@ function Guide() {
                 <dd>Permutation importance 기반 변수 영향 확인</dd>
               </div>
             </dl>
-            <div className="guide-model-note">
-              <p>AI 상대적 고위험 점수는 실제 사고가 발생할 확률이 아니라, 모델이 상위 25% 고위험군과 얼마나 유사하다고 판단했는지를 나타내는 상대적 분류 점수입니다.</p>
-              <p>전국 순위 역시 공식 교통안전 평가 순위가 아니라 본 프로젝트의 분석용 순위입니다.</p>
-            </div>
           </article>
           <article className="rv guide-block guide-warning">
             <span className="kicker">F · LIMITATION</span>
             <h2>해석 시 주의사항</h2>
             <ul>
-              <li>사고다발지역은 전체 어린이 교통사고 위치 목록을 의미하지 않습니다.</li>
               <li>선정지점 미존재는 안전 지역을 의미하지 않습니다.</li>
               <li>시설 데이터가 없는 지역을 시설 0개로 해석하지 않습니다.</li>
               <li>개선 검토 점수는 공식 정책 우선순위가 아닙니다.</li>
@@ -3295,28 +3284,27 @@ function Guide() {
             <span className="kicker">G · LLM ASSISTANT</span>
             <h2>자연어 분석 어시스턴트</h2>
             <p>
-              메인 화면의 AI 질문 기능은 사용자의 질문을 해석한 뒤, Tool Calling으로
-              프로젝트의 실제 API/CSV 기반 데이터를 조회하고 답변을 생성합니다.
+              AI 질문 기능은 Tool Calling으로 프로젝트의 실제 데이터를
+              조회해 답변합니다.
             </p>
             <ol>
               <li>사용자 질문</li>
               <li>LLM 의도 판단</li>
               <li>Tool Calling</li>
-              <li>프로젝트 API/CSV 데이터 조회</li>
+              <li>프로젝트 데이터 조회</li>
               <li>근거 기반 답변 생성</li>
             </ol>
             <div className="guide-ruleline">
               <b>신뢰성 규칙</b>
-              <span>임의 수치 생성 금지 · 프로젝트 데이터에 없는 내용 추정 금지 · AI 점수의 실제 사고확률 표현 금지 · 시설 미제공을 0개로 처리 금지 · 사고다발지역 미선정을 안전하다는 의미로 해석 금지</span>
+              <span>임의 수치 생성 금지 · 데이터에 없는 내용 추정 금지 · AI 점수를 사고확률로 표현 금지 · 시설 미제공을 0개로 처리 금지 · 미선정 지역을 안전하다고 해석 금지</span>
             </div>
           </article>
           <article className="rv guide-block data-provenance">
             <span className="kicker">DATA PROVENANCE</span>
             <h2>분석 결과는 의사결정의 시작점입니다.</h2>
             <p>
-              시설 설치나 정책 결정을 위해서는 현장 확인과 추가 데이터 검토가
-              함께 필요합니다. 세이프스팟은 데이터를 연결해 검토 대상을 좁히는
-              분석 도구입니다.
+              시설 설치·정책 결정에는 현장 확인과 추가 검토가 필요합니다.
+              세이프스팟은 검토 대상을 좁히는 분석 도구입니다.
             </p>
           </article>
         </div>

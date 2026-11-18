@@ -131,7 +131,7 @@ export function RegionNodeMap({
       </svg>
       <figcaption>
         <span>
-          <i className="k-node" /> AI 분석 {regions.length}개 시군구
+          <i className="k-node" /> AI 분석 · {regions.length}개 시군구
         </span>
         <span>
           <i className="k-sel" /> 선택 지역
