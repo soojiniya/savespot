@@ -24,3 +24,8 @@ frontend/dist/
 frontend/.npm-cache/
 frontend/.playwright-browsers/
 **/.ipynb_checkpoints/
+
+.env.*
+!.env.example
+Claude outputs/
+results/ppt_charts/
